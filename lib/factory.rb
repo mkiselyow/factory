@@ -26,3 +26,5 @@ end
 @my_class_users_instance = Factory::User.new(:name => "the some name", :surname => "some surname")
 p @my_class_users
 p @my_class_users_instance
+
+Factory = Struct

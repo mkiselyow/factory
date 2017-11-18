@@ -1,13 +1,12 @@
 class Factory
 
   def self.new(*class_attributes, &block)
-    if class_attributes.first.match(/^[A-Z]\w+(([A-Z]\w+)?)+/)
-      class_name = class_attributes.first
-      class_attributes.shift
-      where_to_create_class = Object::Factory
-    else
-      class_name = "Anonymous"
-      where_to_create_class = Object
+    if class_attributes.first.is_a?(String)
+      if class_attributes.first.match(/^[A-Z]\w+(([A-Z]\w+)?)+/)
+        class_name = class_attributes.shift
+      else
+        class_attributes.shift
+      end
     end
 
     new_class = Class.new do
@@ -25,42 +24,49 @@ class Factory
       def ==(other)
         if self.class == other.class
           @class_attributes.each do |attribute|
-            # why this do not work?
-            # p "#{self.attribute}"
             result = self.public_send(attribute) == other.public_send(attribute) if other.public_send(attribute)
-            return false if result == false
+            return false if result == false #inject
           end
         end
       end
 
       def [](attribute)
         if attribute.is_a?(Integer)
-          instance_variable_get("@#{@class_attributes[attribute]}")
+          key = "@#{@class_attributes[attribute]}"
         else
-          instance_variable_get("@#{attribute}")
+          key = "@#{attribute}"
         end
+        instance_variable_get(key)
       end
 
       def []=(attribute, arg)
         if attribute.is_a?(Integer)
-          # p ":@#{@class_attributes[attribute]}, #{arg}"
-          instance_variable_set("@#{@class_attributes[attribute]}", arg)
+          key = "@#{@class_attributes[attribute]}"
         else
-          # p ":@#{attribute} , #{arg}"
-          instance_variable_set("@#{attribute}", arg)
+          key = "@#{attribute}"
         end
+        instance_variable_set("@#{attribute}", arg)
       end
 
       def dig(*attributes)
-        p "#{self.methods}"
         result = attributes.map {|attribute| self.methods.include?(attribute)}
         nil if result.any? { |any| any == false }
+      end
+
+      def each_pair
+        members.each do |member|
+          yield member, send(member)
+        end
+      end
+
+      define_method :members do
+        class_attributes
       end
 
 
       class_eval(&block) if block_given?
     end
-    where_to_create_class.const_set(class_name, new_class)
+    class_name ? const_set(class_name, new_class) : new_class
   end
 end
 
